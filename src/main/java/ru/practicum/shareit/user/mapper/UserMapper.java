@@ -14,9 +14,10 @@ public interface UserMapper {
     User toEntity(UserDto userDto);
 
     @Mapping(target = "id", ignore = true)
-    User toEntityFromUpdateDto(UserUpdateDto userUpdateDto);
+    User toEntity(UserUpdateDto userUpdateDto);
 
-    UserDto toDtoFromUpdateDto(UserUpdateDto userUpdateDto);
+    @Mapping(target = "id", ignore = true)
+    UserDto toDto(UserUpdateDto userUpdateDto);
 
     UserUpdateDto toUpdateDto(UserDto userDto);
 }
