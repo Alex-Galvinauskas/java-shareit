@@ -43,8 +43,7 @@ public class ItemController {
             @RequestHeader(USER_ID_HEADER) Long userId,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
             @RequestParam(defaultValue = "10") @Positive Integer size) {
-        // Пока игнорируем пагинацию, реализую в следующем спринте
-        return itemService.getAllByOwner(userId).stream()
+        return itemService.getAllByOwner(userId, from, size).stream()
                 .map(itemMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -58,7 +57,7 @@ public class ItemController {
             @RequestParam String text,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
             @RequestParam(defaultValue = "10") @Positive Integer size) {
-        return itemService.search(text).stream()
+        return itemService.search(text, from, size).stream()
                 .map(itemMapper::toDto)
                 .collect(Collectors.toList());
     }
