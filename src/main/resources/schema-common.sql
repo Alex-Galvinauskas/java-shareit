@@ -65,8 +65,6 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 -- Базовые индексы
-CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
-
 CREATE INDEX IF NOT EXISTS idx_requests_requestor_id ON requests(requestor_id);
 CREATE INDEX IF NOT EXISTS idx_requests_created ON requests(created DESC);
 CREATE INDEX IF NOT EXISTS idx_requests_requestor_created ON requests(requestor_id, created DESC);

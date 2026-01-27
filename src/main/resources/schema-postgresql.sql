@@ -12,6 +12,8 @@ CREATE INDEX IF NOT EXISTS idx_items_search_combined ON items USING gin (
     description gin_trgm_ops
 ) WHERE is_available = true;
 
+CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
+
 -- Настройки autovacuum для таблиц с частыми обновлениями
 ALTER TABLE bookings SET (
     autovacuum_vacuum_scale_factor = 0.05,
