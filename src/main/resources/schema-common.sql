@@ -64,14 +64,16 @@ CREATE TABLE IF NOT EXISTS comments (
     CONSTRAINT chk_comment_text_length CHECK (LENGTH(TRIM(text)) >= 1)
 );
 
--- Базовые индексы
+-- Базовые индексы для всех таблиц
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_requests_requestor_id ON requests(requestor_id);
 CREATE INDEX IF NOT EXISTS idx_requests_created ON requests(created DESC);
 CREATE INDEX IF NOT EXISTS idx_requests_requestor_created ON requests(requestor_id, created DESC);
 
 CREATE INDEX IF NOT EXISTS idx_items_owner_id ON items(owner_id);
-CREATE INDEX IF NOT EXISTS idx_items_request_id ON items(request_id) WHERE request_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_items_available ON items(is_available) WHERE is_available = true;
+CREATE INDEX IF NOT EXISTS idx_items_request_id ON items(request_id);
+CREATE INDEX IF NOT EXISTS idx_items_name_search ON items(name);
+CREATE INDEX IF NOT EXISTS idx_items_description_search ON items(description);
 CREATE INDEX IF NOT EXISTS idx_items_owner_available ON items(owner_id, is_available);
 CREATE INDEX IF NOT EXISTS idx_items_owner_available_id ON items(owner_id, is_available, id DESC);
 
@@ -83,10 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_bookings_dates ON bookings(start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_bookings_booker_dates ON bookings(booker_id, start_date DESC, end_date DESC);
 CREATE INDEX IF NOT EXISTS idx_bookings_owner_status ON bookings(owner_id, status);
 CREATE INDEX IF NOT EXISTS idx_bookings_owner_dates ON bookings(owner_id, start_date, end_date);
-CREATE INDEX IF NOT EXISTS idx_bookings_item_status_dates ON bookings(item_id, status, start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_bookings_created ON bookings(created DESC);
-CREATE INDEX IF NOT EXISTS idx_bookings_current ON bookings(item_id, status)
-    WHERE status = 'APPROVED' AND end_date > CURRENT_TIMESTAMP;
 
 CREATE INDEX IF NOT EXISTS idx_comments_item_id ON comments(item_id);
 CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
