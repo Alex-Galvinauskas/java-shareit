@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.item.dto.CommentCreateDto;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.service.ItemService;
@@ -34,8 +36,9 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ItemDto getById(@PathVariable Long itemId) {
-        return itemMapper.toDto(itemService.getById(itemId));
+    public ItemDto getById(@RequestHeader(USER_ID_HEADER) Long userId,
+                           @PathVariable Long itemId) {
+        return itemService.getById(itemId, userId);
     }
 
     @GetMapping
@@ -43,15 +46,9 @@ public class ItemController {
             @RequestHeader(USER_ID_HEADER) Long userId,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
             @RequestParam(defaultValue = "10") @Positive Integer size) {
-        return itemService.getAllByOwner(userId, from, size).stream()
-                .map(itemMapper::toDto)
-                .collect(Collectors.toList());
+        return itemService.getAllByOwner(userId, from, size);
     }
 
-    /**
-     * Поиск вещи
-     * GET /items/search?text={text}
-     */
     @GetMapping("/search")
     public List<ItemDto> search(
             @RequestParam String text,
@@ -60,5 +57,12 @@ public class ItemController {
         return itemService.search(text, from, size).stream()
                 .map(itemMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public CommentDto addComment(@RequestHeader(USER_ID_HEADER) Long userId,
+                                 @PathVariable Long itemId,
+                                 @Valid @RequestBody CommentCreateDto commentCreateDto) {
+        return itemService.addComment(userId, itemId, commentCreateDto);
     }
 }

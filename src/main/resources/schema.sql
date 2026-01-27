@@ -1,4 +1,4 @@
--- Расширения для PostgreSQL (добавить в начало, если не созданы)
+-- Расширения для PostgreSQL
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS btree_gin;
 
@@ -42,10 +42,13 @@ CREATE TABLE IF NOT EXISTS bookings (
     status VARCHAR(20) NOT NULL DEFAULT 'WAITING',
     item_id BIGINT NOT NULL,
     booker_id BIGINT NOT NULL,
+    owner_id BIGINT NOT NULL,
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_booking_on_item FOREIGN KEY (item_id)
         REFERENCES items(id) ON DELETE CASCADE,
     CONSTRAINT fk_booking_on_booker FOREIGN KEY (booker_id)
+        REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_booking_on_owner FOREIGN KEY (owner_id)
         REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT valid_dates CHECK (end_date > start_date),
     CONSTRAINT valid_status CHECK (status IN ('WAITING', 'APPROVED', 'REJECTED', 'CANCELED'))
@@ -78,16 +81,29 @@ CREATE INDEX IF NOT EXISTS idx_items_owner_id ON items(owner_id);
 CREATE INDEX IF NOT EXISTS idx_items_request_id ON items(request_id) WHERE request_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_items_available ON items(is_available) WHERE is_available = true;
 CREATE INDEX IF NOT EXISTS idx_items_owner_available ON items(owner_id, is_available);
+
+-- триграммные индексы
 CREATE INDEX IF NOT EXISTS idx_items_name_trgm ON items USING gin (name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_items_description_trgm ON items USING gin (description gin_trgm_ops);
+
+-- для поиска только доступных вещей
+CREATE INDEX IF NOT EXISTS idx_items_search_combined ON items USING gin (
+    name gin_trgm_ops,
+    description gin_trgm_ops
+) WHERE is_available = true;
+
+-- для быстрого получения вещей владельца
 CREATE INDEX IF NOT EXISTS idx_items_owner_available_id ON items(owner_id, is_available, id DESC);
 
 -- bookings
 CREATE INDEX IF NOT EXISTS idx_bookings_item_id ON bookings(item_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_booker_id ON bookings(booker_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_owner_id ON bookings(owner_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
 CREATE INDEX IF NOT EXISTS idx_bookings_dates ON bookings(start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_bookings_booker_dates ON bookings(booker_id, start_date DESC, end_date DESC);
+CREATE INDEX IF NOT EXISTS idx_bookings_owner_status ON bookings(owner_id, status);
+CREATE INDEX IF NOT EXISTS idx_bookings_owner_dates ON bookings(owner_id, start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_bookings_item_status_dates ON bookings(item_id, status, start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_bookings_created ON bookings(created DESC);
 CREATE INDEX IF NOT EXISTS idx_bookings_current ON bookings(item_id, status)

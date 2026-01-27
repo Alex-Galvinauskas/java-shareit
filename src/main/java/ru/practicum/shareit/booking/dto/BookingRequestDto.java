@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingCreateDto {
+public class BookingRequestDto {
     @NotNull(message = "Дата начала бронирования не может быть пустой")
     @FutureOrPresent(message = "Дата начала должна быть в настоящем или будущем")
     private LocalDateTime start;

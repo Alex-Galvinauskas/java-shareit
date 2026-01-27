@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+import java.util.List;
 
 @Data
 @Builder
@@ -25,5 +25,13 @@ public class ItemDto {
     @NotNull(message = "Статус не может быть пустым")
     private Boolean available;
 
+    private Long ownerId;
+
     private Long requestId;
+
+    private BookingInfoDto lastBooking;
+
+    private BookingInfoDto nextBooking;
+
+    private List<CommentDto> comments;
 }

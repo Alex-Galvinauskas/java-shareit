@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.practicum.shareit.booking.model.BookingStatus;
 
 import java.time.LocalDateTime;
 
@@ -36,6 +35,9 @@ public class Booking {
 
     @Column(name = "booker_id", nullable = false)
     private Long bookerId;
+
+    @Column(name = "owner_id", nullable = false)
+    private Long ownerId;
 
     @Column(name = "created", nullable = false)
     private LocalDateTime created;

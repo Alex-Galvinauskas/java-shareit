@@ -2,12 +2,11 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.item.dto.CommentCreateDto;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
@@ -15,125 +14,112 @@ import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ItemServiceImpl implements ItemService {
+
     private final ItemRepository itemRepository;
     private final UserService userService;
     private final ItemMapper itemMapper;
+    private final ItemDataService itemDataService;
+    private final ItemSearchService itemSearchService;
+    private final CommentService commentService;
 
     @Override
     @Transactional
     public Item create(Long userId, ItemDto itemDto) {
-        log.info("Создание новой вещи для пользователя с ID={}, данные: {}", userId, itemDto);
+        log.info("Создание новой вещи для пользователя с ID={}", userId);
 
         userService.getById(userId);
 
         Item item = itemMapper.toEntity(itemDto, userId);
         item = itemRepository.save(item);
 
-        log.info("Вещь успешно создана с ID={}: {}", item.getId(), item);
+        log.info("Вещь успешно создана с ID={}: name={}, ownerId={}",
+                item.getId(), item.getName(), item.getOwnerId());
         return item;
     }
 
     @Override
     @Transactional
     public Item update(Long userId, Long itemId, ItemDto itemDto) {
-        log.info("Обновление вещи с ID={} пользователем с ID={}, новые данные: {}", itemId, userId, itemDto);
+        log.info("Обновление вещи с ID={} пользователем с ID={}", itemId, userId);
 
         userService.getById(userId);
 
-        Item existingItem = itemRepository.findById(itemId)
-                .orElseThrow(() -> new NotFoundException("Вещь с id=" + itemId + " не найдена"));
+        Item existingItem = itemRepository.findByIdAndOwnerId(itemId, userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Вещь с id=" + itemId + " не найдена или вы не являетесь владельцем"));
 
-        if (!existingItem.getOwnerId().equals(userId)) {
-            log.warn("Пользователь с ID={} не является владельцем вещи с ID={}", userId, itemId);
-            throw new NotFoundException("Пользователь не является владельцем вещи");
-        }
+        updateItemFields(existingItem, itemDto);
 
-        boolean changed = false;
-        if (itemDto.getName() != null) {
-            log.debug("Обновление названия вещи с ID={}: '{}' -> '{}'", itemId, existingItem.getName(), itemDto.getName());
-            existingItem.setName(itemDto.getName());
-            changed = true;
-        }
-        if (itemDto.getDescription() != null) {
-            log.debug("Обновление описания вещи с ID={}", itemId);
-            existingItem.setDescription(itemDto.getDescription());
-            changed = true;
-        }
-        if (itemDto.getAvailable() != null) {
-            log.debug("Обновление доступности вещи с ID={}: {} -> {}", itemId, existingItem.getAvailable(), itemDto.getAvailable());
-            existingItem.setAvailable(itemDto.getAvailable());
-            changed = true;
-        }
+        Item updatedItem = itemRepository.save(existingItem);
+        log.info("Вещь с ID={} успешно обновлена", itemId);
 
-        if (changed) {
-            existingItem = itemRepository.save(existingItem);
-            log.info("Вещь с ID={} успешно обновлена: {}", itemId, existingItem);
-        } else {
-            log.info("Вещь с ID={} не была изменена, все поля null", itemId);
-        }
-
-        return existingItem;
+        return updatedItem;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Item getById(Long itemId) {
-        log.debug("Получение вещи по ID={}", itemId);
+    public ItemDto getById(Long itemId, Long userId) {
+        log.debug("Получение вещи по ID={} для пользователя с ID={}", itemId, userId);
 
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new NotFoundException("Вещь с id=" + itemId + " не найдена"));
+        userService.getById(userId);
 
-        log.debug("Вещь с ID={} найдена: {}", itemId, item);
-        return item;
+        Item item = itemRepository.findByIdAccessibleByUser(itemId, userId)
+                .orElseThrow(() ->
+                        new NotFoundException("Вещь с id=" + itemId + " не найдена или недоступна"));
+
+        ItemDto itemDto = itemMapper.toDto(item);
+        itemDataService.enrichItemWithAdditionalData(itemDto, userId);
+
+        log.debug("Вещь с ID={} найдена: name={}, available={}",
+                itemId, item.getName(), item.getAvailable());
+        return itemDto;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Item> getAllByOwner(Long ownerId, int from, int size) {
+    public List<ItemDto> getAllByOwner(Long ownerId, int from, int size) {
         log.info("Получение всех вещей владельца с ID={}, from={}, size={}", ownerId, from, size);
 
         userService.getById(ownerId);
+        itemSearchService.validatePaginationParams(from, size);
 
-        if (size <= 0) {
-            throw new IllegalArgumentException("Размер страницы должен быть больше 0");
-        }
-        if (from < 0) {
-            throw new IllegalArgumentException("Начальный индекс не может быть отрицательным");
-        }
+        List<Item> ownerItems = itemSearchService.searchByOwner(ownerId, from, size);
+        List<ItemDto> result = ownerItems.stream()
+                .map(itemMapper::toDto)
+                .collect(Collectors.toList());
+        itemDataService.enrichItemsWithAdditionalData(result, ownerId);
 
-        Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
-        List<Item> ownerItems = itemRepository.findByOwnerId(ownerId, pageable);
-
-        log.info("Найдено {} вещей для владельца с ID={}", ownerItems.size(), ownerId);
-        return ownerItems;
+        log.info("Найдено {} вещей для владельца с ID={}", result.size(), ownerId);
+        return result;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Item> search(String text, int from, int size) {
-        log.info("Поиск вещей по тексту: '{}', from={}, size={}", text, from, size);
+        return itemSearchService.searchAvailableItems(text, from, size);
+    }
 
-        if (text == null || text.isBlank()) {
-            log.info("Текст поиска пустой, возвращаем пустой список");
-            return List.of();
-        }
+    @Override
+    @Transactional
+    public CommentDto addComment(Long userId, Long itemId, CommentCreateDto commentCreateDto) {
+        return commentService.addComment(userId, itemId, commentCreateDto);
+    }
 
-        if (size <= 0) {
-            throw new IllegalArgumentException("Размер страницы должен быть больше 0");
-        }
-        if (from < 0) {
-            throw new IllegalArgumentException("Начальный индекс не может быть отрицательным");
-        }
+    private void updateItemFields(Item item, ItemDto itemDto) {
+        Optional.ofNullable(itemDto.getName())
+                .ifPresent(item::setName);
 
-        Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
-        List<Item> searchResults = itemRepository.searchAvailableItems(text, pageable);
+        Optional.ofNullable(itemDto.getDescription())
+                .ifPresent(item::setDescription);
 
-        log.info("Найдено {} вещей по запросу '{}'", searchResults.size(), text);
-        return searchResults;
+        Optional.ofNullable(itemDto.getAvailable())
+                .ifPresent(item::setAvailable);
     }
 }
