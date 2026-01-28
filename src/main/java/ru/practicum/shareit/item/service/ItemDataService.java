@@ -116,11 +116,13 @@ public class ItemDataService {
         LocalDateTime now = LocalDateTime.now();
         Map<Long, BookingInfoDto> result = new HashMap<>();
 
-        itemIds.forEach(itemId -> {
-            List<Booking> bookings = bookingRepository
-                    .findByItemIdAndEndBeforeAndStatusOrderByEndDesc(
-                            itemId, now, BookingStatus.APPROVED);
+        List<Booking> allLastBookings = bookingRepository
+                .findLastBookingsForMultipleItems(itemIds, now, BookingStatus.APPROVED);
 
+        Map<Long, List<Booking>> bookingsByItem = allLastBookings.stream()
+                .collect(Collectors.groupingBy(Booking::getItemId));
+
+        bookingsByItem.forEach((itemId, bookings) -> {
             if (!bookings.isEmpty()) {
                 Booking lastBooking = bookings.getFirst();
                 result.put(itemId, BookingInfoDto.builder()
@@ -130,6 +132,7 @@ public class ItemDataService {
             }
         });
 
+        log.debug("Загружено последних бронирований для {} элементов", result.size());
         return result;
     }
 
@@ -144,11 +147,13 @@ public class ItemDataService {
         LocalDateTime now = LocalDateTime.now();
         Map<Long, BookingInfoDto> result = new HashMap<>();
 
-        itemIds.forEach(itemId -> {
-            List<Booking> bookings = bookingRepository
-                    .findByItemIdAndStartAfterAndStatusOrderByStartAsc(
-                            itemId, now, BookingStatus.APPROVED);
+        List<Booking> allNextBookings = bookingRepository
+                .findNextBookingsForMultipleItems(itemIds, now, BookingStatus.APPROVED);
 
+        Map<Long, List<Booking>> bookingsByItem = allNextBookings.stream()
+                .collect(Collectors.groupingBy(Booking::getItemId));
+
+        bookingsByItem.forEach((itemId, bookings) -> {
             if (!bookings.isEmpty()) {
                 Booking nextBooking = bookings.getFirst();
                 result.put(itemId, BookingInfoDto.builder()
@@ -158,6 +163,7 @@ public class ItemDataService {
             }
         });
 
+        log.debug("Загружено следующих бронирований для {} элементов", result.size());
         return result;
     }
 }
