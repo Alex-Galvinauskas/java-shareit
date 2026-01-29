@@ -9,6 +9,9 @@ import ru.practicum.shareit.item.model.Item;
 public interface ItemMapper {
 
     @Mapping(target = "requestId", source = "requestId")
+    @Mapping(target = "lastBooking", ignore = true)
+    @Mapping(target = "nextBooking", ignore = true)
+    @Mapping(target = "comments", ignore = true)
     ItemDto toDto(Item item);
 
     @Mapping(target = "id", source = "itemDto.id")

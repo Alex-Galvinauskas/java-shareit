@@ -2,136 +2,135 @@ package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.validation.ValidationException;
+import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private final Map<Long, User> users = new HashMap<>();
-    private final Map<String, Long> emailToIdMap = new HashMap<>();
-    private final AtomicLong currentId = new AtomicLong(1L);
+
+    private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final UserValidationService validationService;
 
     @Override
+    @Transactional
     public UserDto create(UserDto userDto) {
         log.info("Создание нового пользователя с email={}", userDto.getEmail());
 
-        if (emailToIdMap.containsKey(userDto.getEmail())) {
-            log.warn("Попытка создания пользователя с уже существующим email={}", userDto.getEmail());
-            throw new ValidationException("Пользователь с email=" + userDto.getEmail() + " уже существует");
-        }
+        validationService.validateForCreation(userDto);
 
         User user = userMapper.toEntity(userDto);
-        user.setId(currentId.getAndIncrement());
-        users.put(user.getId(), user);
-        emailToIdMap.put(user.getEmail(), user.getId());
+        user = userRepository.save(user);
 
-        log.info("Пользователь успешно создан с ID={}: {}", user.getId(), user);
+        log.info("Пользователь успешно создан с ID={}, email={}", user.getId(), user.getEmail());
         return userMapper.toDto(user);
     }
 
     @Override
-    public UserDto update(Long id, UserUpdateDto userUpdateDto) {
-        log.info("Обновление пользователя с ID={}, новые данные: {}", id, userUpdateDto);
+    @Transactional
+    public UserDto update(Long id, UserDto userUpdateDto) {
+        log.info("Обновление пользователя с ID={}", id);
 
-        User existingUser = users.get(id);
-        if (existingUser == null) {
-            log.warn("Пользователь с ID={} не найден при попытке обновления", id);
-            throw new NotFoundException("Пользователь с id=" + id + " не найден");
-        }
+        validationService.validateForUpdate(id, userUpdateDto);
 
-        if (userUpdateDto.getEmail() != null && !userUpdateDto.getEmail().equals(existingUser.getEmail())) {
-            log.debug("Проверка уникальности нового email={} для пользователя с ID={}",
-                    userUpdateDto.getEmail(), id);
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
 
-            Long existingUserIdWithEmail = emailToIdMap.get(userUpdateDto.getEmail());
-            if (existingUserIdWithEmail != null && !existingUserIdWithEmail.equals(id)) {
-                log.warn("Попытка обновления email пользователя с ID={} на уже существующий email={}",
-                        id, userUpdateDto.getEmail());
-                throw new ValidationException("Пользователь с email=" + userUpdateDto.getEmail() + " уже существует");
-            }
-        }
+        updateUserFields(existingUser, userUpdateDto);
 
-        boolean changed = false;
+        User updatedUser = userRepository.save(existingUser);
+        log.info("Пользователь с ID={} успешно обновлен", id);
 
-        if (userUpdateDto.getEmail() != null && !userUpdateDto.getEmail().equals(existingUser.getEmail())) {
-            log.debug("Обновление email пользователя с ID={}: '{}' -> '{}'",
-                    id, existingUser.getEmail(), userUpdateDto.getEmail());
-
-            emailToIdMap.remove(existingUser.getEmail());
-            existingUser.setEmail(userUpdateDto.getEmail());
-            emailToIdMap.put(userUpdateDto.getEmail(), id);
-            changed = true;
-        }
-
-        if (userUpdateDto.getName() != null) {
-            log.debug("Обновление имени пользователя с ID={}: '{}' -> '{}'",
-                    id, existingUser.getName(), userUpdateDto.getName());
-            existingUser.setName(userUpdateDto.getName());
-            changed = true;
-        }
-
-        if (changed) {
-            users.put(id, existingUser);
-            log.info("Пользователь с ID={} успешно обновлен: {}", id, existingUser);
-        } else {
-            log.info("Пользователь с ID={} не был изменен, все поля null", id);
-        }
-
-        return userMapper.toDto(existingUser);
+        return userMapper.toDto(updatedUser);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDto getById(Long id) {
         log.debug("Получение пользователя по ID={}", id);
 
-        User user = users.get(id);
-        if (user == null) {
-            log.warn("Пользователь с ID={} не найден", id);
-            throw new NotFoundException("Пользователь с id=" + id + " не найден");
-        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
 
-        log.debug("Пользователь с ID={} найден: {}", id, user);
+        log.debug("Пользователь с ID={} найден: name={}", id, user.getName());
         return userMapper.toDto(user);
     }
 
     @Override
-    public List<UserDto> getAll() {
-        log.debug("Получение списка всех пользователей");
-        List<UserDto> allUsers = new ArrayList<>();
-        for (User user : users.values()) {
-            allUsers.add(userMapper.toDto(user));
+    @Transactional(readOnly = true)
+    public User getUserEntityById(Long id) {
+        log.debug("Получение сущности пользователя по ID={}", id);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+
+        log.debug("Сущность пользователя с ID={} найдена", id);
+        return user;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> getUsersByIds(List<Long> ids) {
+        log.debug("Получение списка пользователей по IDs ({} элементов)", ids != null ? ids.size() : 0);
+
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
         }
+
+        List<User> users = userRepository.findByIdIn(ids);
+        log.debug("Найдено {} пользователей", users.size());
+        return users;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserDto> getAll(int from, int size) {
+        log.debug("Получение списка всех пользователей, from={}, size={}", from, size);
+
+        validationService.validatePaginationParams(from, size);
+
+        Pageable pageable = PageRequest.of(from / size, size,
+                Sort.by("id").ascending());
+        List<UserDto> allUsers = userRepository.findAll(pageable).stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
+
         log.info("Возвращено {} пользователей", allUsers.size());
         return allUsers;
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         log.info("Удаление пользователя с ID={}", id);
 
-        User user = users.get(id);
-        if (user == null) {
-            log.warn("Пользователь с ID={} не найден при попытке удаления", id);
-            throw new NotFoundException("Пользователь с id=" + id + " не найден");
-        }
-
-        emailToIdMap.remove(user.getEmail());
-        users.remove(id);
+        validationService.validateUserExists(id);
+        userRepository.deleteById(id);
 
         log.info("Пользователь с ID={} успешно удален", id);
+    }
+
+    private void updateUserFields(User user, UserDto userUpdateDto) {
+        Optional.ofNullable(userUpdateDto.getEmail())
+                .filter(email -> !email.equals(user.getEmail()))
+                .ifPresent(user::setEmail);
+
+        Optional.ofNullable(userUpdateDto.getName())
+                .filter(name -> !name.equals(user.getName()))
+                .ifPresent(user::setName);
     }
 }
