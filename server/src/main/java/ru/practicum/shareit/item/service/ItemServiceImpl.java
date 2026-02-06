@@ -11,6 +11,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
@@ -28,6 +29,7 @@ public class ItemServiceImpl implements ItemService {
     private final ItemDataService itemDataService;
     private final ItemSearchService itemSearchService;
     private final CommentService commentService;
+    private final ItemRequestRepository itemRequestRepository;
 
     @Override
     @Transactional
@@ -35,6 +37,12 @@ public class ItemServiceImpl implements ItemService {
         log.info("Создание новой вещи для пользователя с ID={}", userId);
 
         userService.getById(userId);
+
+        if (itemDto.getRequestId() != null) {
+            itemRequestRepository.findById(itemDto.getRequestId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Запрос с id=" + itemDto.getRequestId() + " не найден"));
+        }
 
         Item item = itemMapper.toEntity(itemDto, userId);
         item = itemRepository.save(item);
@@ -121,5 +129,12 @@ public class ItemServiceImpl implements ItemService {
 
         Optional.ofNullable(itemDto.getAvailable())
                 .ifPresent(item::setAvailable);
+
+        if (itemDto.getRequestId() != null) {
+            itemRequestRepository.findById(itemDto.getRequestId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Запрос с id=" + itemDto.getRequestId() + " не найден"));
+            item.setRequestId(itemDto.getRequestId());
+        }
     }
 }
