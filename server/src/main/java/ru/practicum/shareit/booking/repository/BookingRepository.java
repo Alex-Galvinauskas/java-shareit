@@ -59,12 +59,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("now") LocalDateTime now,
             @Param("status") BookingStatus status);
 
-    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN TRUE ELSE FALSE END " +
-            "FROM Booking b " +
-            "WHERE b.itemId = :itemId " +
+    @Query(value = "SELECT EXISTS (" +
+            "SELECT 1 FROM bookings b " +
+            "WHERE b.item_id = :itemId " +
             "AND b.status IN ('APPROVED', 'WAITING') " +
-            "AND b.start < :end " +
-            "AND b.end > :start")
+            "AND b.start_date < :end " +
+            "AND b.end_date > :start " +
+            "LIMIT 1" +
+            ")", nativeQuery = true)
     boolean existsOverlappingBooking(
             @Param("itemId") Long itemId,
             @Param("start") LocalDateTime start,
