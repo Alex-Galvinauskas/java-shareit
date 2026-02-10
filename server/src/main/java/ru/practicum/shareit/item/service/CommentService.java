@@ -210,7 +210,7 @@ public class CommentService {
 
     @lombok.Builder
     @lombok.Data
-    private static class CommentBatchResult {
+    static class CommentBatchResult {
         private Long itemId;
         private CommentDto commentDto;
     }

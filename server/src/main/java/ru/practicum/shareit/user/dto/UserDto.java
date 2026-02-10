@@ -18,8 +18,4 @@ public class UserDto {
     private String name;
 
     private String email;
-
-    public interface OnCreate {}
-
-    public interface OnUpdate {}
 }

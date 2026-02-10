@@ -107,6 +107,10 @@ public class BookingServiceImpl implements BookingService {
         log.info("Получение бронирований пользователя с ID={}, состояние={}, from={}, size={}",
                 userId, state, from, size);
 
+        if (state == null) {
+            throw new InvalidStateException("Состояние не может быть null");
+        }
+
         userService.getById(userId);
         validatePaginationParams(from, size);
 
@@ -139,6 +143,10 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponseDto> getOwnerBookings(Long userId, BookingState state, int from, int size) {
         log.info("Получение бронирований владельца с ID={}, состояние={}, from={}, size={}",
                 userId, state, from, size);
+
+        if (state == null) {
+            throw new InvalidStateException("Состояние не может быть null");
+        }
 
         userService.getById(userId);
         validatePaginationParams(from, size);

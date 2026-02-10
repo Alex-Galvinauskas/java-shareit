@@ -124,7 +124,7 @@ public class UserServiceImpl implements UserService {
         log.info("Пользователь с ID={} успешно удален", id);
     }
 
-    private void updateUserFields(User user, UserDto userUpdateDto) {
+    void updateUserFields(User user, UserDto userUpdateDto) {
         Optional.ofNullable(userUpdateDto.getEmail())
                 .filter(email -> !email.equals(user.getEmail()))
                 .ifPresent(user::setEmail);

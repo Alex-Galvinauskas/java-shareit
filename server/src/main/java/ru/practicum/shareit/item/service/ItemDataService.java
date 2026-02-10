@@ -106,7 +106,7 @@ public class ItemDataService {
     }
 
     @Transactional(readOnly = true)
-    private Map<Long, BookingInfoDto> loadLastBookingsForItems(List<Long> itemIds) {
+    Map<Long, BookingInfoDto> loadLastBookingsForItems(List<Long> itemIds) {
         if (itemIds == null || itemIds.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -137,7 +137,7 @@ public class ItemDataService {
     }
 
     @Transactional(readOnly = true)
-    private Map<Long, BookingInfoDto> loadNextBookingsForItems(List<Long> itemIds) {
+    Map<Long, BookingInfoDto> loadNextBookingsForItems(List<Long> itemIds) {
         if (itemIds == null || itemIds.isEmpty()) {
             return Collections.emptyMap();
         }
