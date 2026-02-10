@@ -99,7 +99,14 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = getBookingById(bookingId);
         validateBookingAccess(booking, userId);
 
-        return mapToResponseDto(booking);
+        List<Booking> bookings = List.of(booking);
+        List<BookingResponseDto> result = mapBookingsToResponseDtos(bookings);
+
+        if (result.isEmpty()) {
+            throw new NotFoundException("Бронирование с id=" + bookingId + " не найдено");
+        }
+
+        return result.getFirst();
     }
 
     @Transactional(readOnly = true)
