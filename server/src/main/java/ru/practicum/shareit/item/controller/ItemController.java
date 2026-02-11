@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.CommentCreateDto;
 import ru.practicum.shareit.item.dto.CommentDto;
@@ -23,46 +24,47 @@ public class ItemController {
     private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
-    public ItemDto create(@RequestHeader(USER_ID_HEADER) Long userId,
-                           @RequestBody ItemDto itemDto) {
-        return itemMapper.toDto(itemService.create(userId, itemDto));
+    public ResponseEntity<ItemDto> create(@RequestHeader(USER_ID_HEADER) Long userId,
+                                          @RequestBody ItemDto itemDto) {
+        return ResponseEntity.ok(itemMapper.toDto(itemService.create(userId, itemDto)));
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto update(@RequestHeader(USER_ID_HEADER) Long userId,
-                          @PathVariable Long itemId,
-                          @RequestBody ItemDto itemDto) {
-        return itemMapper.toDto(itemService.update(userId, itemId, itemDto));
+    public ResponseEntity<ItemDto> update(@RequestHeader(USER_ID_HEADER) Long userId,
+                                          @PathVariable Long itemId,
+                                          @RequestBody ItemDto itemDto) {
+        return ResponseEntity.ok(itemMapper.toDto(itemService.update(userId, itemId, itemDto)));
     }
 
     @GetMapping("/{itemId}")
-    public ItemDto getById(@RequestHeader(USER_ID_HEADER) Long userId,
-                           @PathVariable Long itemId) {
-        return itemService.getById(itemId, userId);
+    public ResponseEntity<ItemDto> getById(@RequestHeader(USER_ID_HEADER) Long userId,
+                                           @PathVariable Long itemId) {
+        return ResponseEntity.ok(itemService.getById(itemId, userId));
     }
 
     @GetMapping
-    public List<ItemDto> getAllByOwner(
+    public ResponseEntity<List<ItemDto>> getAllByOwner(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
             @RequestParam(defaultValue = "10") @Positive Integer size) {
-        return itemService.getAllByOwner(userId, from, size);
+        return ResponseEntity.ok(itemService.getAllByOwner(userId, from, size));
     }
 
     @GetMapping("/search")
-    public List<ItemDto> search(
+    public ResponseEntity<List<ItemDto>> search(
             @RequestParam String text,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
             @RequestParam(defaultValue = "10") @Positive Integer size) {
-        return itemService.search(text, from, size).stream()
+        List<ItemDto> result = itemService.search(text, from, size).stream()
                 .map(itemMapper::toDto)
                 .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{itemId}/comment")
-    public CommentDto addComment(@RequestHeader(USER_ID_HEADER) Long userId,
-                                 @PathVariable Long itemId,
-                                 @Valid @RequestBody CommentCreateDto commentCreateDto) {
-        return itemService.addComment(userId, itemId, commentCreateDto);
+    public ResponseEntity<CommentDto> addComment(@RequestHeader(USER_ID_HEADER) Long userId,
+                                                 @PathVariable Long itemId,
+                                                 @Valid @RequestBody CommentCreateDto commentCreateDto) {
+        return ResponseEntity.ok(itemService.addComment(userId, itemId, commentCreateDto));
     }
 }

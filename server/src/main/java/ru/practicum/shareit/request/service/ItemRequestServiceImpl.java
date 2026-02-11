@@ -64,29 +64,24 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
         userService.getUserEntityById(userId);
 
-        // Получаем запросы пользователя
         List<ItemRequest> requests = itemRequestRepository.findByRequestorIdOrderByCreatedDesc(userId);
 
         if (requests.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Получаем ID всех запросов
         List<Long> requestIds = requests.stream()
                 .map(ItemRequest::getId)
                 .collect(Collectors.toList());
 
-        // Загружаем все связанные вещи за один запрос
         List<Item> items = itemRepository.findByRequestIdIn(requestIds);
 
-        // Группируем вещи по ID запроса
         Map<Long, List<ItemForRequestDto>> itemsByRequestId = items.stream()
                 .collect(Collectors.groupingBy(
                         Item::getRequestId,
                         Collectors.mapping(itemMapper::toForRequestDto, Collectors.toList())
                 ));
 
-        // Маппим результат
         return requests.stream()
                 .map(request -> itemRequestMapper.toResponseDto(
                         request,
@@ -105,7 +100,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
         Pageable pageable = PageRequest.of(from / size, size);
 
-        // Используем оптимизированный запрос для получения запросов, на которые пользователь не отвечал
         Page<ItemRequest> requestPage = itemRequestRepository
                 .findOtherUsersRequestsWithoutUserResponses(userId, pageable);
 
@@ -115,22 +109,18 @@ public class ItemRequestServiceImpl implements ItemRequestService {
             return Collections.emptyList();
         }
 
-        // Получаем ID всех запросов
         List<Long> requestIds = requests.stream()
                 .map(ItemRequest::getId)
                 .collect(Collectors.toList());
 
-        // Загружаем все связанные вещи за один запрос
         List<Item> items = itemRepository.findByRequestIdIn(requestIds);
 
-        // Группируем вещи по ID запроса
         Map<Long, List<ItemForRequestDto>> itemsByRequestId = items.stream()
                 .collect(Collectors.groupingBy(
                         Item::getRequestId,
                         Collectors.mapping(itemMapper::toForRequestDto, Collectors.toList())
                 ));
 
-        // Маппим результат
         return requests.stream()
                 .map(request -> itemRequestMapper.toWithItemsDto(
                         request,
@@ -145,11 +135,9 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
         userService.getUserEntityById(userId);
 
-        // Используем оптимизированный запрос с JOIN FETCH
         ItemRequest request = itemRequestRepository.findByIdWithRequestor(requestId)
                 .orElseThrow(() -> new NotFoundException("Запрос с id=" + requestId + " не найден"));
 
-        // Загружаем все связанные вещи
         List<Item> items = itemRepository.findByRequestId(requestId);
         List<ItemForRequestDto> itemDtos = items.stream()
                 .map(itemMapper::toForRequestDto)

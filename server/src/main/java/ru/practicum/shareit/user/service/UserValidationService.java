@@ -77,11 +77,6 @@ public class UserValidationService {
             return false;
         }
 
-        // Основные проверки:
-        // 1. Есть символ @
-        // 2. Есть точка после @
-        // 3. После точки есть минимум один символ
-        // 4. Нет двух точек подряд
         int atIndex = email.indexOf('@');
         if (atIndex <= 0 || atIndex == email.length() - 1) {
             return false;
@@ -89,12 +84,10 @@ public class UserValidationService {
 
         String domainPart = email.substring(atIndex + 1);
 
-        // Проверяем, что в доменной части нет двух точек подряд
         if (domainPart.contains("..")) {
             return false;
         }
 
-        // Проверяем, что есть точка и после последней точки есть символы
         int lastDotIndex = domainPart.lastIndexOf('.');
         return lastDotIndex > 0 && lastDotIndex < domainPart.length() - 1;
     }
