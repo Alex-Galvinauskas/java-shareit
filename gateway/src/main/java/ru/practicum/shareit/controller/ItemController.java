@@ -18,14 +18,14 @@ public class ItemController {
     private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
-    public ResponseEntity<Object> create(
+    public ResponseEntity<String> create(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @Valid @RequestBody ItemDto itemDto) {
         return itemClient.create(userId, itemDto);
     }
 
     @PatchMapping("/{itemId}")
-    public ResponseEntity<Object> update(
+    public ResponseEntity<String> update(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @PathVariable Long itemId,
             @RequestBody ItemDto itemDto) {
@@ -33,14 +33,14 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ResponseEntity<Object> getById(
+    public ResponseEntity<String> getById(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @PathVariable Long itemId) {
         return itemClient.getById(itemId, userId);
     }
 
     @GetMapping
-    public ResponseEntity<Object> getAllByOwner(
+    public ResponseEntity<String> getAllByOwner(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
             @RequestParam(defaultValue = "10") @Positive Integer size) {
@@ -48,7 +48,7 @@ public class ItemController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<Object> search(
+    public ResponseEntity<String> search(
             @RequestParam String text,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
             @RequestParam(defaultValue = "10") @Positive Integer size) {
@@ -56,7 +56,7 @@ public class ItemController {
     }
 
     @PostMapping("/{itemId}/comment")
-    public ResponseEntity<Object> addComment(
+    public ResponseEntity<String> addComment(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @PathVariable Long itemId,
             @Valid @RequestBody CommentCreateDto commentCreateDto) {

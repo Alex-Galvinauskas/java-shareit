@@ -22,19 +22,19 @@ public class UserClient extends BaseClient {
                 .build());
     }
 
-    public ResponseEntity<Object> create(UserDto userDto) {
+    public ResponseEntity<String> create(UserDto userDto) {
         return post("", userDto);
     }
 
-    public ResponseEntity<Object> update(long userId, UserDto userDto) {
+    public ResponseEntity<String> update(long userId, UserDto userDto) {
         return patch("/" + userId, userDto);
     }
 
-    public ResponseEntity<Object> getById(long userId) {
+    public ResponseEntity<String> getById(long userId) {
         return get("/" + userId);
     }
 
-    public ResponseEntity<Object> getAll(Integer from, Integer size) {
+    public ResponseEntity<String> getAll(Integer from, Integer size) {
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
@@ -42,7 +42,7 @@ public class UserClient extends BaseClient {
         return get("?from={from}&size={size}", null, parameters);
     }
 
-    public ResponseEntity<Object> delete(long userId) {
+    public ResponseEntity<String> delete(long userId) {
         return delete("/" + userId);
     }
 }
