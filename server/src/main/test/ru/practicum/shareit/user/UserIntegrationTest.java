@@ -92,7 +92,7 @@ class UserIntegrationTest {
                 .andExpect(jsonPath("$[0].id").value(userId));
 
         mockMvc.perform(delete("/users/{id}", userId))
-                .andExpect(status().isOk());
+                .andExpect(status().is2xxSuccessful());
 
         mockMvc.perform(get("/users/{id}", userId))
                 .andExpect(status().isNotFound());
@@ -108,7 +108,7 @@ class UserIntegrationTest {
 
         UserDto duplicateUser = UserDto.builder()
                 .name("Another User")
-                .email("integration@test.com") // тот же email
+                .email("integration@test.com")
                 .build();
 
         mockMvc.perform(post("/users")

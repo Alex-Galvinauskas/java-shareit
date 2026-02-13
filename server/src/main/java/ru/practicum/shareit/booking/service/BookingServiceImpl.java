@@ -265,9 +265,11 @@ public class BookingServiceImpl implements BookingService {
     private void validateBookingAccess(Booking booking, Long userId) {
         Item item = itemRepository.findById(booking.getItemId()).orElse(null);
 
-        if (!booking.getBookerId().equals(userId) &&
-                (item == null || !item.getOwnerId().equals(userId))) {
-            throw new AccessDeniedException("Доступ к бронирования запрещен");
+        boolean isBooker = booking.getBookerId().equals(userId);
+        boolean isOwner = item != null && item.getOwnerId().equals(userId);
+
+        if (!isBooker && !isOwner) {
+            throw new AccessDeniedException("Доступ к бронированию запрещен");
         }
     }
 

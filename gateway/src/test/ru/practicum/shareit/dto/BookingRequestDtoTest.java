@@ -52,7 +52,7 @@ public class BookingRequestDtoTest extends ModelValidationTest<BookingRequestDto
 
         @Test
         public void shouldNotFindViolationWhenStartIsPresent() {
-            dto.setStart(LocalDateTime.now());
+            dto.setStart(LocalDateTime.now().plusSeconds(1));
             assertTrue(isModelValid(dto));
         }
 
