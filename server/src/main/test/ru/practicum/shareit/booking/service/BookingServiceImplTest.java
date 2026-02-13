@@ -293,7 +293,8 @@ class BookingServiceImplTest {
         when(userService.getById(1L)).thenReturn(userDto);
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-        when(userService.getUserEntityById(1L)).thenReturn(user);
+        when(itemRepository.findAllById(anyList())).thenReturn(List.of(item));
+        when(userService.getUsersByIds(anyList())).thenReturn(List.of(user));
         when(bookingMapper.toResponseDto(any(Booking.class),
                 any(Item.class), any(User.class)))
                 .thenReturn(bookingResponseDto);
@@ -302,15 +303,23 @@ class BookingServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
+
+        verify(itemRepository).findAllById(anyList());
+        verify(userService).getUsersByIds(anyList());
     }
+
+
 
     @Test
     @DisplayName("Получение бронирования по ID владельцем должно возвращать DTO")
     void getById_whenOwnerRequests_shouldReturnBookingResponseDto() {
-        when(userService.getById(2L)).thenReturn(UserDto.builder().id(2L).build());
+        UserDto ownerDto = UserDto.builder().id(2L).build();
+
+        when(userService.getById(2L)).thenReturn(ownerDto);
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
         when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-        when(userService.getUserEntityById(1L)).thenReturn(user);
+        when(itemRepository.findAllById(anyList())).thenReturn(List.of(item));
+        when(userService.getUsersByIds(anyList())).thenReturn(List.of(user));
         when(bookingMapper.toResponseDto(any(Booking.class),
                 any(Item.class), any(User.class)))
                 .thenReturn(bookingResponseDto);
@@ -319,6 +328,9 @@ class BookingServiceImplTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
+
+        verify(itemRepository).findAllById(anyList());
+        verify(userService).getUsersByIds(anyList());
     }
 
     @Test
@@ -331,7 +343,7 @@ class BookingServiceImplTest {
         AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> bookingService.getById(3L, 1L));
 
-        assertTrue(exception.getMessage().contains("Доступ к бронирования запрещен"));
+        assertTrue(exception.getMessage().contains("Доступ к бронированию запрещен"));
     }
 
     @Test
